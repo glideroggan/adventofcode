@@ -11,55 +11,59 @@ var total = Day03.Solve(rawInput);
 
 Console.WriteLine($"Sum of priorities: {total}");
 
-class Day03
+static class Day03
 {
     public static int Solve(string[] rawInput)
     {
         var total = 0;
+        var lineCount = 0;
+        var rucksack1 = new HashSet<char>();
+        var rucksack2 = new HashSet<char>();
+        var rucksack3 = new HashSet<char>();
         foreach (var line in rawInput)
         {
-            /*
-             * go through the line (whole line)
-             * first char, check the other half for it, every char iterated over gets indexed and moves the pointer
-             * if not found at all, then all chars in compartment 2 is indexed and 
-             */
             var span = line.AsSpan();
-            var middle = span.Length / 2;
-            var checkingCompartment = span[..middle];
-            var duplicates = new List<char>();
-            var currentIndex = middle;
-            
-            var hashs = new[] { new HashSet<char>(), new HashSet<char>() };
-            int GetIndex(int i) => i < middle ? 1 : 0; 
+            lineCount++;
+            /*
+             * go through each character in rucksack, each item gets indexed
+             * 
+             */
+
             for (var i = 0; i < span.Length; i++)
             {
-                if (duplicates.Contains(span[i])) continue;
-                
-                // check if span[i] is part of other compartment, first already indexed
-                if (hashs[GetIndex(i)].Contains(span[i]))
+                if (lineCount % 3 == 1)
                 {
-                    Debug.Assert(!duplicates.Contains(span[i]));
-                    duplicates.Add(span[i]);
+                    // first rucksack
+                    rucksack1.Add(span[i]);
                 }
-                else if (currentIndex < span.Length)
+                else if (lineCount % 3 == 2)
                 {
-                    // check and index at the same time
-                    for (var index = currentIndex; index < span.Length; index++)
-                    {
-                        hashs[GetIndex(i)].Add(span[index]);
-                        currentIndex++;
-                        if (!hashs[GetIndex(i)].Contains(span[i])) continue;
-                        
-                        Debug.Assert(!duplicates.Contains(span[i]));
-                        duplicates.Add(span[i]);
-                        break;
-                    }
+                    // second
+                    rucksack2.Add(span[i]);
+                }
+                else if (lineCount % 3 == 0)
+                {
+                    // third
+                    rucksack3.Add(span[i]);
                 }
             }
+            
+            if (lineCount % 3 != 0) continue;
+            
+            rucksack1.IntersectWith(rucksack2);
+            rucksack1.IntersectWith(rucksack3);
+            
             // extracted all the duplicates
-            Console.WriteLine($"Duplicates found in rucksack: {duplicates.Aggregate("", (s, c) => s + c)}");
+            Console.WriteLine($"Duplicates found in all rucksacks: {rucksack1.Aggregate("", (s, c) => s + c)}");
+            
             // count their total priority
-            var sum = duplicates.Aggregate(0, (current, item) => current + GetPrio(item));
+            var sum = rucksack1.Aggregate(0, (current, item) => current + GetPrio(item));
+            
+            // clear for next round
+            rucksack1.Clear();
+            rucksack2.Clear();
+            rucksack3.Clear();
+            lineCount = 0;
 
             total += sum;
         }
@@ -76,5 +80,3 @@ class Day03
         };
     }
 }
-
-
