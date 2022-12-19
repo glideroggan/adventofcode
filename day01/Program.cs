@@ -33,3 +33,6 @@ List<int> ParseInput(string[] rawInput)
 }
 
 Console.WriteLine($"Highest calorie amount carried: {calorieList[^1]}");
+
+// part 2
+Console.WriteLine($"Top 3 total calories: {calorieList[^1] + calorieList[^2] + calorieList[^3]}");
