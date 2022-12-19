@@ -14,10 +14,16 @@ foreach (var line in rawInput)
         'B' => "Paper",
         'C' => "Scissors"
     };
-    var you = (line[^1]) switch {
-        'X' => "Rock",
-        'Y' => "Paper",
-        'Z' => "Scissors"
+    var you = (opponent, line[^1]) switch {
+        ("Rock", 'X') => "Scissors",
+        ("Rock", 'Y') => "Rock",
+        ("Rock", 'Z') => "Paper",
+        ("Paper", 'X') => "Rock",
+        ("Paper", 'Y') => "Paper",
+        ("Paper", 'Z') => "Scissors",
+        ("Scissors", 'X') => "Paper",
+        ("Scissors", 'Y') => "Scissors",
+        ("Scissors", 'Z') => "Rock",
     };
     var yourScore = (opponent, you) switch {
         ("Rock","Rock") => 3 + 1,
