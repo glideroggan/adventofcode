@@ -18,12 +18,10 @@ static class Day05
          * parse the stacks
          */
 
-        // TODO: parse the stacks
         var (instructions, stacks) = ParseStacks(rawInput);
 
         FollowInstructions(instructions, stacks);
 
-        // TODO: take top item from each stack and create message
         return stacks.Aggregate("", (current, t) => current + t.Peek());
     }
 
@@ -38,11 +36,16 @@ static class Day05
             var fromStack = int.Parse(match.Groups[2].Value)-1;
             var toStack = int.Parse(match.Groups[3].Value)-1;
 
+            var queue = new Stack<char>();
             for (var i = 0; i < numOfItemsToMove; i++)
             {
-                stacks[toStack].Push(
-                    stacks[fromStack].Pop());
+                queue.Push(stacks[fromStack].Pop());
             }
+            for (var i = 0; i < numOfItemsToMove; i++)
+            {
+                stacks[toStack].Push(queue.Pop());
+            }
+            
         }
     }
 
