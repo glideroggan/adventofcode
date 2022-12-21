@@ -5,8 +5,8 @@ async Task<string[]> ReadInput()
     return await File.ReadAllLinesAsync("input.txt");
 }
 
-var result = Day08.Solve(rawInput);
-Console.WriteLine($"Total of visible trees: {result}");
+var result = Day08.SolvePart2(rawInput);
+Console.WriteLine($"Best scenic score: {result}");
 
 static class Day08
 {
@@ -137,6 +137,92 @@ static class Day08
         }
 
         return false;
+    }
+
+    public static (int, int, int) SolvePart2(string[] rawInput)
+    {
+        /*
+         * Find best viewing distance by checking each tree how far you can reach in all directions
+         * stopping at an each height tree or taller.
+         *
+         * 
+         */
+
+        var grid = ConvertToGrid(rawInput);
+        var bestScore = (0, 0, 0);
+
+        for (var y = 1; y < grid.GetLength(0)-1; y++)
+        for (var x = 1; x < grid.GetLength(1)-1; x++)
+        {
+            var score = DistLeft(x, y, grid) * DistRight(x, y, grid) * DistUp(x, y, grid) * DistDown(x, y, grid);
+            if (score > bestScore.Item3)
+            {
+                bestScore = (x, y, score);
+            }
+        }
+
+        return bestScore;
+    }
+
+    private static int DistLeft(int x, int y, int[,] grid)
+    {
+        var current = grid[y, x];
+        var distance = 0;
+        for (var left = x-1; left >= 0; left--)
+        {
+            distance++;
+            if (grid[y, left] >= current) break;
+        }
+
+        return distance;
+    }
+    private static int DistRight(int x, int y, int[,] grid)
+    {
+        var current = grid[y, x];
+        var distance = 0;
+        for (var right = x+1; right < grid.GetLength(1); right++)
+        {
+            distance++;
+            if (grid[y, right] >= current) break;
+        }
+
+        return distance;
+    }
+    private static int DistUp(int x, int y, int[,] grid)
+    {
+        var current = grid[y, x];
+        var distance = 0;
+        for (var up = y-1; up >= 0; up--)
+        {
+            distance++;
+            if (grid[up, x] >= current) break;
+        }
+
+        return distance;
+    }
+    private static int DistDown(int x, int y, int[,] grid)
+    {
+        var current = grid[y, x];
+        var distance = 0;
+        for (var down = y+1; down < grid.GetLength(0); down++)
+        {
+            distance++;
+            if (grid[down, x] >= current) break;
+        }
+
+        return distance;
+    }
+
+    private static int[,] ConvertToGrid(string[] rawInput)
+    {
+        var grid = new int[rawInput.Length, rawInput[0].Length];
+        for (var y = 0; y < rawInput.Length; y++)
+        for (var x = 0; x < rawInput[y].Length; x++)
+        {
+            grid[y, x] = int.Parse(rawInput[y][x].ToString());
+        }
+
+        return grid;
     }
 }
 
