@@ -21,13 +21,13 @@ static class Day06
         {
             var span = line.AsSpan();
             
-            var lastChars = new char[4];
+            var lastChars = new char[14];
             var cursor = 0;
-            lastChars.Enqueue(span[cursor++]);
-            lastChars.Enqueue(span[cursor++]);
-            lastChars.Enqueue(span[cursor++]);
-            lastChars.Enqueue(span[cursor++]);
-
+            for (var i = 0; i < 14; i++)
+            {
+                lastChars.Enqueue(span[cursor++]);    
+            }
+            
             do
             {
                 if (lastChars.AllUnique()) break;
