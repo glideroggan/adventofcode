@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 var rawInput = await ReadInput();
 
@@ -12,9 +10,23 @@ async Task<string[]> ReadInput()
 var result = Day07.Solve(rawInput);
 Console.WriteLine(result);
 
+var totalDisk = 70_000_000;
+var targetSpace = 30_000_000;
+
+Console.WriteLine($"Space taken: {result.Root.Size}");
+var freeSpace = totalDisk - result.Root.Size;
+Console.WriteLine($"Free space: '{freeSpace}'");
+var spaceNeeded = targetSpace - freeSpace;
+Console.WriteLine($"Find folders to delete to gain '{spaceNeeded}' space");
+
+var folders = result.GetFolders(f => f.Size >= spaceNeeded);
+
+Console.WriteLine($"Folders that could be deleted to gain enough space: {folders.Aggregate("", (s, folder) => s + $"{folder.Name}, ")}");
+Console.WriteLine($"Folder to delete '{folders.First(f => f.Size == folders.Min(ff => ff.Size)).Name}':{folders.Min(f => f.Size)}");
+
 // find folders with a size < 100.000
-var folders = result.GetFolders(f => f.Size < 100_000);
-Console.WriteLine($"Total of size of those folder: {folders.Sum(f => f.Size)}");
+
+// Console.WriteLine($"Total of size of those folder: {folders.Sum(f => f.Size)}");
 // Console.WriteLine($"Folders: {folders.Aggregate("", (s, folder) => s + $"\n{folder.Name}")}");
 
 
@@ -83,7 +95,7 @@ static class Day07
                 }
                 else if (arg == "/")
                 {
-                    tree.Root();
+                    tree.NavigateToRoot();
                 }
                 else
                 {
@@ -95,82 +107,6 @@ static class Day07
                 // following parsing will be content
                 break;
         }
-    }
-}
-
-class Tree
-{
-    private readonly Folder _root;
-    private Folder? _currentFolder;
-
-    public Tree()
-    {
-        _root = new Folder("/", null);
-        _currentFolder = _root;
-    }
-    public void Root()
-    {
-        _currentFolder = _root;
-    }
-
-    public void Up()
-    {
-        Debug.Assert(_currentFolder?.Parent != null);
-        _currentFolder = _currentFolder.Parent;
-    }
-
-    public void CreateAndNavigate(string folderName)
-    {
-        _currentFolder = _currentFolder.Create(folderName); 
-    }
-
-    public void CreateFolder(string folderName)
-    {
-        _currentFolder.Create(folderName);
-    }
-
-    public void CreateFile(int size, string fileName)
-    {
-        _currentFolder.AddFile(size, fileName);
-    }
-
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-
-        NavigateAndPrint(sb, _root, 0);
-        return sb.ToString();
-    }
-
-    private void NavigateAndPrint(StringBuilder sb, Folder folder, int depth)
-    {
-        sb.Append("\n");
-        sb.Append("".PadRight(depth, ' '));
-        sb.Append("- ");
-        sb.Append($"{folder.Name} (dir)");
-        foreach (var subFolder in folder.Children)
-        {
-            NavigateAndPrint(sb, subFolder, depth+2);
-        }
-
-        foreach (var file in folder.Files)
-        {
-            PrintFile(sb, file, depth+2);
-        }
-    }
-
-    private void PrintFile(StringBuilder sb, (string FileName, int Size) file, int depth)
-    {
-        sb.Append("\n");
-        sb.Append("".PadRight(depth, ' '));
-        sb.Append("- ");
-        sb.Append($"{file.FileName} (file, size={file.Size})");
-    }
-
-    public Folder[] GetFolders(Func<Folder, bool> predicate)
-    {
-        var folders = _root.Check(predicate);
-        return folders;
     }
 }
 
