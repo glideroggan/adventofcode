@@ -5,10 +5,20 @@ var fileData = ReadInput("input.txt");
 // process data as a grid
 var validPartNumbers = GetParts(fileData);
 
+// find out which numbers that "touch" the same gear symbol *
+var partGears = validPartNumbers
+    .Where(p => p.Symbol == '*')
+    .Select(p => (p.Number, p.SymbolPos))
+    .GroupBy(p => p.SymbolPos)
+    .Where(g => g.Count() > 1)
+    .SelectMany(g => g.Select(p => p))
+    .Distinct()
+    .ToArray();
+
 // output result
 Console.WriteLine($"Sum of valid part numbers: {validPartNumbers.Sum()}");
 
-static int[] GetParts(string[] fileData)
+static Part[] GetParts(string[] fileData)
 {
     // start on position up left
     // parse until number, then until non-number
@@ -19,7 +29,7 @@ static int[] GetParts(string[] fileData)
 
     var stride = fileData[0].Length;
     var index = -1;
-    var partNumbers = new List<int>();
+    var partNumbers = new List<Part>();
     var digits = new HashSet<char>("0123456789");
     // TODO: can we go through to next stride from right?, or left?
     var directions = new[] {
@@ -111,4 +121,11 @@ static int[] GetParts(string[] fileData)
 static string[] ReadInput(string fileName)
 {
     return File.ReadAllLines(fileName);
+}
+
+struct Part
+{
+    public int Number { get; set; }
+    public (int,int) SymbolPos { get; set; }
+    public char Symbol { get; set; }
 }
