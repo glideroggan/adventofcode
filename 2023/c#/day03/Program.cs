@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text.Json;
 
 var fileData = ReadInput("input.txt");
 
@@ -8,15 +9,23 @@ var validPartNumbers = GetParts(fileData);
 // find out which numbers that "touch" the same gear symbol *
 var partGears = validPartNumbers
     .Where(p => p.Symbol == '*')
-    .Select(p => (p.Number, p.SymbolPos))
+    // .Select(p => (p.Number, p.SymbolPos))
     .GroupBy(p => p.SymbolPos)
     .Where(g => g.Count() > 1)
-    .SelectMany(g => g.Select(p => p))
-    .Distinct()
+    // .SelectMany(g => g.Select(p => p))
+    // .Distinct()
     .ToArray();
 
+// Console.WriteLine($"Part gears: {JsonSerializer.Serialize(validPartNumbers)}");
+// Console.WriteLine($"Part gears: {JsonSerializer.Serialize(partGears)}");
+// multiply gear numbers within the same group, and sum all groups
+var result = partGears
+    .Select(g => g.Select(p => p.Number).Aggregate((a, b) => a * b))
+    .Sum();
+
+
 // output result
-Console.WriteLine($"Sum of valid part numbers: {validPartNumbers.Sum()}");
+Console.WriteLine($"Sum of valid part numbers: {result}");
 
 static Part[] GetParts(string[] fileData)
 {
@@ -40,40 +49,56 @@ static Part[] GetParts(string[] fileData)
     var inNumber = false;
     var numberStr = string.Empty;
     var isPart = false;
-    var directionStr = string.Empty;
-    // var indexPos = (x: 0, y: 0);
+    var symbolPos = -1;
 
 
     // if I overshoot a stride, then I should always do the number check
-    while (index < data.Length-1)
+    while (index < data.Length - 1)
     {
         var current = data[++index];
-        if (index % stride == 0 && index >= stride) {
-            // Console.WriteLine($"Overshoot: index[{index}], current[{current}], str[{numberStr}], ");
-            if (inNumber && isPart) {
-                partNumbers.Add(int.Parse(numberStr, CultureInfo.InvariantCulture));
+        if (index % stride == 0 && index >= stride)
+        {
+            if (inNumber && isPart)
+            {
+                var part = new Part
+                {
+                    Number = int.Parse(numberStr, CultureInfo.InvariantCulture),
+                    SymbolPos = symbolPos,
+                    Symbol = data[symbolPos]
+                };
+                partNumbers.Add(part);
                 numberStr = string.Empty;
                 inNumber = false;
                 isPart = false;
+                symbolPos = -1;
             }
-            else if (inNumber && !isPart) {
+            else if (inNumber && !isPart)
+            {
                 numberStr = string.Empty;
                 inNumber = false;
                 isPart = false;
             }
         }
-        
 
-        switch (current) {
+
+        switch (current)
+        {
             case { } when inNumber && !isPart && !digits.Contains(current):
                 numberStr = string.Empty;
                 inNumber = false;
                 isPart = false;
                 continue;
             case { } when inNumber && isPart && !digits.Contains(current):
-                partNumbers.Add(int.Parse(numberStr, CultureInfo.InvariantCulture));
+                var part = new Part
+                {
+                    Number = int.Parse(numberStr, CultureInfo.InvariantCulture),
+                    SymbolPos = symbolPos,
+                    Symbol = data[symbolPos]
+                };
+                partNumbers.Add(part);
                 numberStr = string.Empty;
                 inNumber = false;
+                symbolPos = -1;
                 isPart = false;
                 continue;
             case { } when !inNumber && !digits.Contains(current):
@@ -89,11 +114,12 @@ static Part[] GetParts(string[] fileData)
                 numberStr += current;
                 continue;
             default: throw new Exception($"Unknown state: {current}");
-            
+
         };
-        
+
         // check surroundings
-        if (inNumber && !isPart) {
+        if (inNumber && !isPart)
+        {
             foreach (var direction in directions)
             {
                 var checkIndex = index + direction;
@@ -106,9 +132,7 @@ static Part[] GetParts(string[] fileData)
                 if (!digits.Contains(check) && check != '.')
                 {
                     isPart = true;
-                    // Console.WriteLine($"Found part number: {numberStr}, " +
-                    //     $"direction: {direction}");
-                    directionStr = direction.ToString();
+                    symbolPos = index + direction;
                     break;
                 }
             }
@@ -126,6 +150,6 @@ static string[] ReadInput(string fileName)
 struct Part
 {
     public int Number { get; set; }
-    public (int,int) SymbolPos { get; set; }
+    public int SymbolPos { get; set; }
     public char Symbol { get; set; }
 }
