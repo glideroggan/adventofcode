@@ -9,14 +9,14 @@ come up with the range from starting ms, to ending ms that holding the button
 would win.
 The charge is 1mm/ms
 */
-var CalculateDistance = (float holdingMs, float totalMs) =>
+var CalculateDistance = (double holdingMs, double totalMs) =>
     {
         return holdingMs * (totalMs - holdingMs);
     };
-var CalculateHolding = (float distance_mm, float totalMs) =>
+var CalculateHolding = (double distance_mm, double totalMs) =>
     {
-        return (max:(float)((totalMs / 2f) + (Math.Sqrt(-4f * distance_mm + totalMs * totalMs) / 2f)),
-            min:(float)((totalMs / 2f) - (Math.Sqrt(-4f * distance_mm + totalMs * totalMs) / 2f)));
+        return (max: (double)((totalMs / 2d) + (Math.Sqrt(-4f * distance_mm + totalMs * totalMs) / 2d)),
+            min: (double)((totalMs / 2d) - (Math.Sqrt(-4f * distance_mm + totalMs * totalMs) / 2d)));
 
     };
 var product = 1;
@@ -27,15 +27,15 @@ foreach (var race in races)
     // should just be in reverse
     var holdingMs = CalculateHolding(race.MaxDistance, race.Time);
     // Console.WriteLine($"Record holder held {holdingMs}ms to get a distance of {race.MaxDistance}mm");
-    var minimumHoldingForWin = MathF.Ceiling(holdingMs.min) == holdingMs.min 
-        ? holdingMs.min + 1 
-        : MathF.Ceiling(holdingMs.min);
+    var minimumHoldingForWin = Math.Ceiling(holdingMs.min) == holdingMs.min
+        ? holdingMs.min + 1
+        : Math.Ceiling(holdingMs.min);
     var distance_mm = CalculateDistance(minimumHoldingForWin, race.Time);
     // Console.WriteLine($"To get a distance of {distance_mm}mm, hold for {minimumHoldingForWin}ms");
 
-    var maximumHoldingForWin = MathF.Floor(holdingMs.max) == holdingMs.max 
-        ? holdingMs.max - 1 
-        : MathF.Floor(holdingMs.max);
+    var maximumHoldingForWin = Math.Floor(holdingMs.max) == holdingMs.max
+        ? holdingMs.max - 1
+        : Math.Floor(holdingMs.max);
     distance_mm = CalculateDistance(maximumHoldingForWin, race.Time);
     // Console.WriteLine($"To get a distance of {distance_mm}mm, hold for {maximumHoldingForWin}ms");
 
@@ -49,13 +49,20 @@ Console.WriteLine($"Product of all the possible holding times is {product}");
 static Race[] Parse(string[] inputData)
 {
     var races = new List<Race>();
-    var times = inputData[0].Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).Select(int.Parse).ToArray();
-    var distances = inputData[1].Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).Select(int.Parse).ToArray();
-    for (var i = 0; i < times.Length; i++)
-    {
-        races.Add(new Race(times[i], distances[i]));
-    }
+    var times = inputData[0].Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1)
+        .Aggregate("", (acc, next) => acc + next);
+    var distances = inputData[1].Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1)
+        .Aggregate("", (acc, next) => acc + next);
+    Console.WriteLine("""
+    Times: {0}
+    Distances: {1}
+    """, times, distances);
+    races.Add(new Race(ulong.Parse(times), ulong.Parse(distances)));
+    // for (var i = 0; i < times.Length; i++)
+    // {
+    //     races.Add(new Race(times[i], distances[i]));
+    // }
     return races.ToArray();
 }
 
-record struct Race(int Time, int MaxDistance);
+record struct Race(ulong Time, ulong MaxDistance);
