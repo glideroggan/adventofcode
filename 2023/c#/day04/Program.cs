@@ -1,4 +1,6 @@
-﻿var input = ReadInput("input.txt");
+﻿using System.Security.Cryptography.X509Certificates;
+
+var input = ReadInput("input.txt");
 
 static string[] ReadInput(string filePath)
 {
@@ -13,54 +15,84 @@ var cards = Parse(input);
 static Card[] Parse(string[] input)
 {
     // parse card number, winning numbers | your numbers
+    var copies = new Dictionary<int, int>();
     var cards = new List<Card>();
-    foreach (var line in input)
+
+    for (var index = 0; index < input.Length; index++)
     {
-        // var card = new Card();
+        var line = input[index];
+
+        // process original card
         var parts = line.Split(":");
-        var id = int.Parse(parts[0][parts[0].IndexOf(" ")..]);
+        var id = int.Parse(parts[0][parts[0].IndexOf(' ')..]);
         parts = parts[1].Split("|");
         var winningNumbersStr = parts[0].Split(" ", StringSplitOptions.RemoveEmptyEntries);
         var yourNumbersStr = parts[1].Split(" ", StringSplitOptions.RemoveEmptyEntries);
         var winningNumbers = winningNumbersStr.Select(x => x.Trim()).Select(int.Parse).ToArray();
         var yourNumbers = yourNumbersStr.Select(x => x.Trim()).Select(int.Parse).ToArray();
-        cards.Add(new Card(id, winningNumbers, yourNumbers));
+        var card = new Card(id, winningNumbers, yourNumbers);
+        cards.Add(card);
+
+        // add copies based on matches of winning numbers and your numbers
+        var matches = winningNumbers.Where(winningNumber => yourNumbers.Contains(winningNumber)).ToList();
+        // for each match, add a copy of the following card
+        var copiesId = id + 1;
+        for (var i = 0; i < matches.Count; i++)
+        {
+            if (copies.TryGetValue(copiesId, out var copiesCount))
+            {
+                copies[copiesId] = copiesCount + 1;
+            }
+            else
+            {
+                copies.Add(copiesId, 1);
+            }
+
+            copiesId++;
+        }
+
+        // for current card, check if there are copies that needs processing
+        if (copies.TryGetValue(id, out var num))
+        {
+            // add copies to current card
+            card.Copies = num;
+        }
+        
+        // if card had copies, process those copies to get copies
+        for (var i = 0; i < card.Copies; i++)
+        {
+            // get matches
+            matches = card.WinningNumbers.Where(winningNumber => card.YourNumbers.Contains(winningNumber)).ToList();
+
+            copiesId = card.Id + 1;
+            for (var i2 = 0; i2 < matches.Count; i2++)
+            {
+                if (copies.TryGetValue(copiesId, out var copiesCount))
+                {
+                    copies[copiesId] = copiesCount + 1;
+                }
+                else
+                {
+                    copies.Add(copiesId, 1);
+                }
+
+                copiesId++;
+            }
+        }
     }
+
     return cards.ToArray();
 }
 
 
+// sum up the number of cards, including copies
+var totalCards = cards.Sum(x => x.Copies + 1);
+Console.WriteLine($"Total cards: {totalCards}");
 
-// calculate the worth of each card
-foreach (var card in cards)
+internal class Card(int id, int[] winningNumbers, int[] yourNumbers)
 {
-    card.Worth = card.CalculateWorth();
-}
-
-Console.WriteLine($"Sum: {cards.Sum(c => c.Worth)}");
-
-class Card(int Id, int[] WinningNumbers, int[] YourNumbers)
-{
-    // public required int Id { get; set; }
-    // public required int[] WinningNumbers { get; set; }
-    // public required int[] YourNumbers { get; set; }
-    public int Worth { get; set; }
-
-    internal int CalculateWorth()
-    {
-        // each matching of your numbers with the winning numbers is worth 1 point
-        // every subsequent match is worth double the previous match
-
-        var worth = 0;
-        var matches = 0;
-        foreach (var yourNumber in YourNumbers)
-        {
-            if (WinningNumbers.Contains(yourNumber))
-            {
-                matches++;
-                worth = matches == 1 ? 1 : worth * 2;
-            }
-        }
-        return worth;
-    }
+    public int[] WinningNumbers { get; } = winningNumbers;
+    public int[] YourNumbers { get; } = yourNumbers;
+    public int Copies { get; set; }
+    public int Id { get; } = id;
 }

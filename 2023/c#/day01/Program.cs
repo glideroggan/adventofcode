@@ -1,7 +1,7 @@
 ﻿// read input
 using System.Diagnostics;
 
-var lines = File.ReadAllLines("input.txt");
+var lines = File.ReadAllLines("test_input.txt");
 
 var digits = new List<int>();
 
