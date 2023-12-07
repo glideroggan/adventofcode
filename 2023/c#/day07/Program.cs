@@ -6,7 +6,7 @@ var games = Parse(dataInput);
 
 // Console.WriteLine($"Games: {JsonSerializer.Serialize(games)}");
 
-const string cards = "AKQJT98765432";
+const string cards = "AKQT98765432J";
 
 static Hand[] SortHands(Hand[] hands)
 {
@@ -20,12 +20,20 @@ static Hand[] SortHands(Hand[] hands)
     {
         // record values
         var cardBucket = new Dictionary<char, int>();
+        var jokers = 0;
         foreach (var card in hand.Cards)
         {
-            cardBucket[card] = cardBucket.TryGetValue(card, out var count) ? count + 1 : 1;
+            if (card == 'J')
+            {
+                jokers++;
+            }
+            else
+            {
+                cardBucket[card] = cardBucket.TryGetValue(card, out var count) ? count + 1 : 1;
+            }
         }
 
-        var kind = GetKind(cardBucket);
+        var kind = GetKind(cardBucket, jokers);
         (kindBuckets.TryGetValue(kind, out var bucket)
             ? bucket
             : kindBuckets[kind] = new List<Hand>()).Add(hand);
@@ -103,9 +111,32 @@ static List<Game> Parse(string[] data)
 
 static string[] ReadInput(string file) => File.ReadAllLines(file);
 
-static Kind GetKind(Dictionary<char, int> cards)
+static Kind GetKind(Dictionary<char, int> cards, int jokers)
 {
-    return cards.Values switch
+    // lets find the highest Kind, and using jokers to fill in the gaps
+    if (jokers == 0)
+    {
+        return cards.Values switch
+        {
+            var values when values.Any(v => v == 5) => Kind.FiveOfAKind,
+            var values when values.Any(v => v == 4) => Kind.FourOfAKind,
+            var values when values.Any(v => v == 3) && values.Any(v => v == 2) => Kind.FullHouse,
+            var values when values.Any(v => v == 3) => Kind.ThreeOfAKind,
+            var values when values.Count(v => v == 2) == 2 => Kind.TwoPairs,
+            var values when values.Any(v => v == 2) => Kind.OnePair,
+            _ => Kind.HighCard,
+        };
+    }
+
+    // five of a kind is the highest
+    // four of a kind => five of a kind
+    // Full house => not possible
+    // three of a kind => four of a kind
+    // two pairs => three of a kind
+    // one pair => three of a kind 
+
+    // try to find the highest possible kind
+    var kind = cards.Values switch
     {
         var values when values.Any(v => v == 5) => Kind.FiveOfAKind,
         var values when values.Any(v => v == 4) => Kind.FourOfAKind,
@@ -115,6 +146,21 @@ static Kind GetKind(Dictionary<char, int> cards)
         var values when values.Any(v => v == 2) => Kind.OnePair,
         _ => Kind.HighCard,
     };
+    while (jokers > 0 && kind != Kind.FiveOfAKind)
+    {
+        kind = kind switch
+        {
+            Kind.HighCard => Kind.OnePair,
+            Kind.OnePair => Kind.ThreeOfAKind,
+            Kind.TwoPairs => Kind.FullHouse,
+            Kind.ThreeOfAKind => Kind.FourOfAKind,
+            Kind.FullHouse => Kind.FourOfAKind,
+            Kind.FourOfAKind => Kind.FiveOfAKind,
+            _ => throw new Exception("Invalid kind"),
+        };
+        jokers--;
+    }
+    return kind;
 }
 
 internal enum Kind
