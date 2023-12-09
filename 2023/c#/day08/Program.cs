@@ -1,44 +1,59 @@
 ﻿using System.Diagnostics;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 var fileData = File.ReadAllLines("input.txt");
 var instructions = ParseInstructions(fileData);
 var nodeLookup = new Dictionary<string, Node>();
+ParseNodes(fileData);
 
-var steps = Search(fileData, instructions);
+var steps = Search();
 
 
 Console.WriteLine($"Steps: {steps}");
 
 
-int Search(string[] fileData, Instruction instructions)
+int Search()
 {
-    // parse out the nodes
-    var root = ParseNodes(fileData);
-
-    Console.WriteLine($"Root: {JsonSerializer.Serialize(root)}");
-    // travel the nodes by following the instructions
-    var steps = 0;
-    var current = root;
-    while (current.Name != "ZZZ")
+    // travel each starting node simultaneously, checking between each step if they are all on an ending node
+    var startingPlaces = nodeLookup.Where(x => x.Value.Name.EndsWith('A')).Select(x => x.Value).ToList();
+    Console.WriteLine($"Starting places: {startingPlaces.Count}");
+    var entities = new List<Node>();
+    foreach (var startingPlace in startingPlaces)
     {
-        if (instructions.Current == 'L')
-        {
-            instructions.Progress();
-            steps++;
-            current = nodeLookup[current.Left];
-            continue;
-        }
-        instructions.Progress();
-        steps++;
-        current = nodeLookup[current.Right];
+        entities.Add(startingPlace);
     }
+    var timer = new Stopwatch();
+    timer.Start();
+    var steps = 0;
+    while (true) {
+        steps++;
+        var ending = true;
+        for (var i = 0; i < entities.Count; i++)
+        {
+            if (instructions.Current == 'L')
+            {
+                entities[i] = nodeLookup[entities[i].Left];
+                if (!entities[i].Name.EndsWith('Z')) ending = false;
+                continue;
+            }
+            entities[i] = nodeLookup[entities[i].Right];
+            if (!entities[i].Name.EndsWith('Z')) ending = false;
+        }
+        if (ending) break;
+        instructions.Progress();
+
+        if (timer.ElapsedMilliseconds > 1000)
+        {
+            Console.WriteLine($"Steps: {steps}");
+            timer.Restart();
+        }
+    }
+
     return steps;
 }
 
 
-Node ParseNodes(string[] fileData)
+void ParseNodes(string[] fileData)
 {
     var regex = new Regex(@"(\w+) = \((\w+), (\w+)\)");
     foreach (var line in fileData.Skip(2))
@@ -59,26 +74,6 @@ Node ParseNodes(string[] fileData)
     }
 
     Console.WriteLine($"Node count: {nodeLookup.Count}");
-    return nodeLookup["AAA"];
-}
-
-void Travel(Node node, ref int steps)
-{
-    if (node.Name == "ZZZ")
-    {
-        Console.WriteLine("Destination reached");
-        return;
-    }
-    if (instructions.Current == 'L')
-    {
-        instructions.Progress();
-        steps++;
-        Travel(nodeLookup[node.Left], ref steps);
-        return;
-    }
-    instructions.Progress();
-    steps++;
-    Travel(nodeLookup[node.Right], ref steps);
 }
 
 static Instruction ParseInstructions(string[] fileData)
