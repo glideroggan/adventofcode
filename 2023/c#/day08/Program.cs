@@ -12,40 +12,67 @@ var steps = Search();
 Console.WriteLine($"Steps: {steps}");
 
 
-int Search()
+long Search()
 {
     // travel each starting node simultaneously, checking between each step if they are all on an ending node
-    var startingPlaces = nodeLookup.Where(x => x.Value.Name.EndsWith('A')).Select(x => x.Value).ToList();
+    var startingPlaces = nodeLookup.Where(x => x.Value.Name[^1] == 'A').Select(x => x.Value).ToList();
     Console.WriteLine($"Starting places: {startingPlaces.Count}");
-    var entities = new List<Node>();
-    foreach (var startingPlace in startingPlaces)
+    var endingPlaces = nodeLookup.Where(x => x.Value.Name[^1] == 'Z').Select(x => x.Value.Name).ToHashSet();
+    Console.WriteLine($"Ending places: {endingPlaces.Count}, {string.Join(", ", endingPlaces.Select(x => x.ToString()))}");
+
+    /* What if I map each instruction step to a landing node? Shouldn't I be able to tell then which instruction will contain the ending node?
+    */
+
+
+
+    var entities = new Node[startingPlaces.Count];
+    for (var i = 0; i < startingPlaces.Count; i++)
     {
-        entities.Add(startingPlace);
+        entities[i] = startingPlaces[i];
     }
     var timer = new Stopwatch();
     timer.Start();
-    var steps = 0;
-    while (true) {
+    var steps = 0L;
+    var stepsPerSecond = 0;
+    while (true)
+    {
         steps++;
-        var ending = true;
-        for (var i = 0; i < entities.Count; i++)
+        stepsPerSecond++;
+        if (instructions.Current == 'L')
         {
-            if (instructions.Current == 'L')
+            for (var i = 0; i < startingPlaces.Count; i++)
             {
-                entities[i] = nodeLookup[entities[i].Left];
-                if (!entities[i].Name.EndsWith('Z')) ending = false;
-                continue;
+                entities[i] = entities[i].Left!;
             }
-            entities[i] = nodeLookup[entities[i].Right];
-            if (!entities[i].Name.EndsWith('Z')) ending = false;
         }
-        if (ending) break;
-        instructions.Progress();
+        else 
+        {
+            for (var i = 0; i < startingPlaces.Count; i++)
+            {
+                entities[i] = entities[i].Right!;
+            }
+        }
+        // check if name ends with Z
+        var ending = true;
+        for (var i = 0; i < startingPlaces.Count; i++)
+        {
+            if (entities[i].Name[^1] != 'Z')
+            {
+                ending = false;
+                break;
+            }
+        }
+        if (ending)
+        {
+            break;
+        }
 
+        instructions.Index++;
         if (timer.ElapsedMilliseconds > 1000)
         {
-            Console.WriteLine($"Steps: {steps}");
+            Console.WriteLine($"Steps: {steps}, Steps per second: {stepsPerSecond} s/s, Turn: {instructions.Current}");
             timer.Restart();
+            stepsPerSecond = 0;
         }
     }
 
@@ -60,17 +87,23 @@ void ParseNodes(string[] fileData)
     {
         var parts = regex.Match(line);
         var name = parts.Groups[1].Value;
-        var leftName = parts.Groups[2].Value;
-        var rightName = parts.Groups[3].Value;
+
 
         var node = new Node
         {
             Name = name,
-            Left = leftName,
-            Right = rightName
+            Left = new Node { Name = parts.Groups[2].Value },
+            Right = new Node { Name = parts.Groups[3].Value }
         };
 
         nodeLookup.Add(name, node);
+    }
+
+    // go through each node in the list and make sure it has a left and right node
+    foreach (var node in nodeLookup.Values)
+    {
+        node.Left = nodeLookup[node.Left!.Name];
+        node.Right = nodeLookup[node.Right!.Name];
     }
 
     Console.WriteLine($"Node count: {nodeLookup.Count}");
@@ -81,25 +114,28 @@ static Instruction ParseInstructions(string[] fileData)
     return new Instruction { Data = fileData[0] };
 }
 
-struct Instruction
+internal struct Instruction
 {
     public string Data { get; init; }
-    private int index;
-    public readonly char Current => Data[index];
-    public void Progress()
+    public int Index
     {
-        index++;
-        if (index >= Data.Length)
+        readonly get => index;
+        set
         {
-            index = 0;
+            index = value;
+            if (index >= Data.Length)
+            {
+                index = 0;
+            }
         }
     }
+    private int index;
+    public readonly char Current => Data[index];
 }
 
 class Node
 {
-    public required string Name { get; set; }
-    public required string Left { get; set; }
-    public required string Right { get; set; }
+    public required string Name { get; init; }
+    public Node? Left { get; set; }
+    public Node? Right { get; set; }
 }
-
