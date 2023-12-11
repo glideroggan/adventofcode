@@ -12,73 +12,74 @@ var steps = Search();
 Console.WriteLine($"Steps: {steps}");
 
 
-long Search()
+UInt64 Search()
 {
     // travel each starting node simultaneously, checking between each step if they are all on an ending node
     var startingPlaces = nodeLookup.Where(x => x.Value.Name[^1] == 'A').Select(x => x.Value).ToList();
-    Console.WriteLine($"Starting places: {startingPlaces.Count}");
+    Console.WriteLine($"Starting places: {string.Join(", ", startingPlaces.Select(x => x.Name))}");
     var endingPlaces = nodeLookup.Where(x => x.Value.Name[^1] == 'Z').Select(x => x.Value.Name).ToHashSet();
-    Console.WriteLine($"Ending places: {endingPlaces.Count}, {string.Join(", ", endingPlaces.Select(x => x.ToString()))}");
+    Console.WriteLine($"Ending places: {string.Join(", ", endingPlaces.Select(x => x.ToString()))}");
+    Console.WriteLine($"Instruction length: {instructions.Data.Length}");
 
-    /* What if I map each instruction step to a landing node? Shouldn't I be able to tell then which instruction will contain the ending node?
-    */
-
-
-
+    var jumps = new List<UInt64>();
     var entities = new Node[startingPlaces.Count];
     for (var i = 0; i < startingPlaces.Count; i++)
     {
         entities[i] = startingPlaces[i];
     }
-    var timer = new Stopwatch();
-    timer.Start();
-    var steps = 0L;
-    var stepsPerSecond = 0;
-    while (true)
+    uint steps = 0;
+    // First, find each starting point end point Z
+    // then use the first two to calculate their LCM
+    // use that result to calculate the third entity and so on
+    for (var i = 0; i < startingPlaces.Count; i++)
     {
-        steps++;
-        stepsPerSecond++;
-        if (instructions.Current == 'L')
+        var entity = entities[i];
+        steps = 0;
+        while (entity.Name[^1] != 'Z')
         {
-            for (var i = 0; i < startingPlaces.Count; i++)
+            if (instructions.Data[(int)steps % instructions.Data.Length] == 'L')
             {
-                entities[i] = entities[i].Left!;
+                entity = entity.Left!;
             }
-        }
-        else 
-        {
-            for (var i = 0; i < startingPlaces.Count; i++)
+            else
             {
-                entities[i] = entities[i].Right!;
+                entity = entity.Right!;
             }
+            steps++;
         }
-        // check if name ends with Z
-        var ending = true;
-        for (var i = 0; i < startingPlaces.Count; i++)
-        {
-            if (entities[i].Name[^1] != 'Z')
-            {
-                ending = false;
-                break;
-            }
-        }
-        if (ending)
-        {
-            break;
-        }
-
-        instructions.Index++;
-        if (timer.ElapsedMilliseconds > 1000)
-        {
-            Console.WriteLine($"Steps: {steps}, Steps per second: {stepsPerSecond} s/s, Turn: {instructions.Current}");
-            timer.Restart();
-            stepsPerSecond = 0;
-        }
+        jumps.Add(steps);
+        Console.WriteLine($"Entity {i} found Z in {steps} steps");
     }
 
-    return steps;
-}
+    var lcm = jumps[0];
+    for (var i = 1; i < jumps.Count; i++)
+    {
+        lcm = LCM(lcm, jumps[i]);
+    }
 
+    return lcm;
+
+    static UInt64 LCM(UInt64 a, UInt64 b)
+    {
+        Console.WriteLine($"Calculating LCM of {a} and {b}");
+        var gcd = GCD(a, b);
+        UInt64 lcm = a / gcd * b;
+        Console.WriteLine($"LCM: {lcm}");
+        return lcm;
+    }
+    static UInt64 GCD(UInt64 a, UInt64 b)
+    {
+        Console.WriteLine($"Calculating GCD of {a} and {b}");
+        while (b != 0)
+        {
+            var temp = b;
+            b = a % b;
+            a = temp;
+        }
+        Console.WriteLine($"GCD: {a}");
+        return a;
+    }
+}
 
 void ParseNodes(string[] fileData)
 {
@@ -117,20 +118,6 @@ static Instruction ParseInstructions(string[] fileData)
 internal struct Instruction
 {
     public string Data { get; init; }
-    public int Index
-    {
-        readonly get => index;
-        set
-        {
-            index = value;
-            if (index >= Data.Length)
-            {
-                index = 0;
-            }
-        }
-    }
-    private int index;
-    public readonly char Current => Data[index];
 }
 
 class Node
